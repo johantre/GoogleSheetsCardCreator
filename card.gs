@@ -60,11 +60,7 @@ function getSelectedItemsRange(backlog) {
 // START: Set dimentions in sheet
 function setRowHeightTo(cardSheet, numberOfTemplateRows, numberOfItems, remainderPageSize, cardCountOnPage) {
   var templateSheet = getTemplateSheet();
-  var xtraRow = 0;
-  if (cardCountOnPage > 0){
-    xtraRow = 1;
-  }
-  
+
   var currentRow = 0;
   var endOfPrintArea = false;
   for (var i = 0; i < numberOfItems; i++) {
@@ -216,8 +212,7 @@ function createCards(backlogItems) {
 
 function scanCardTemplateForHeadings(headings){
   var headingCoords = [];
-  var headingCoord = {};
-  
+
   for (var i = 0;i < headings.length;i++) {
     if (headings[i] !== "") {      
       var foundCells = find("<"+headings[i]+">", getTemplateSheet());

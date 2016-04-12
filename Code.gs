@@ -266,8 +266,6 @@ function getDataFromIndirectFieldName(indirectFieldName, data) {
 function getPropertyValueFromCsvString(csvString, propertyName) {
   
   var fieldprops = csvString.split(",");
-  var foundName = false;
-  var foundCount = 0;
   for (var j = 0; j < fieldprops.length; j++) {
     if (fieldprops[j].indexOf(propertyName) != -1){ 
       var prop = fieldprops[j].split("=");
