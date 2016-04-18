@@ -26,8 +26,11 @@ function getRangeHeight(range) {
   var sheetRowCount = range.getHeight();
   var pixelSize = 0;
   for (var i = 1; i <= sheetRowCount; i++){
-    pixelSize += range.getSheet().getRowHeight(i);
+  	var rowHeight = range.getSheet().getRowHeight(i);
+  	//Browser.msgBox("rowHeight = " + rowHeight);
+    pixelSize += rowHeight;
   };
+  //Browser.msgBox("pixelSize = " + pixelSize);
   return pixelSize;
 }
 // END: Get sheets
@@ -57,7 +60,7 @@ function getSelectedItemsRange(backlog) {
 }
 // END: Get range within sheets
 
-// START: Set dimentions in sheet
+// START: Set dimensions in sheet
 function setRowHeightTo(cardSheet, numberOfTemplateRows, numberOfItems, remainderPageSize, cardCountOnPage) {
   var templateSheet = getTemplateSheet();
 
@@ -152,11 +155,7 @@ function getPreparedCardSheet(template, numberOfItems, numberOfTemplateRows, rem
   var rowsNeeded = (numberOfItems * numberOfTemplateRows) + remainderCellsNeeded;
   var cardSheet = getCardSheet();
   
-  cardSheet.clear();
-  if (cardSheet.getMaxRows() > 1)
-    cardSheet.deleteRows(1, cardSheet.getMaxRows()-1);
-  
-  setColumnWidthTo(cardSheet, template);
+  initializeCardSheet(cardSheet, template);
   
   var rows = cardSheet.getMaxRows();
   if (rows < rowsNeeded) {
@@ -175,11 +174,10 @@ function createCards(backlogItems) {
   var numberOfTemplateCols = getTemplateSheet().getLastColumn();
   var template = getTemplateSheet().getRange(1, 1, numberOfTemplateRows, numberOfTemplateCols);  
   var templateSize = getRangeHeight(template); 
-  //Browser.msgBox("templateSize = " + templateSize);
-  
   var printPageHeight = getJiraConfigSheet().getRange("B6").getValue();
   var cardCountOnPage = Math.floor(printPageHeight/templateSize);
   var remainderPageSize = printPageHeight%templateSize; 
+  // Cleanup to do 
   var remainderCellsNeeded = 0;
   if (remainderPageSize>0){
     remainderCellsNeeded = Math.floor(backlogItems.length/cardCountOnPage);
@@ -187,27 +185,69 @@ function createCards(backlogItems) {
     remainderCellsNeeded = 0;
   }
   
-  var cardSheet = getPreparedCardSheet(template, backlogItems.length, numberOfTemplateRows, remainderCellsNeeded, remainderPageSize, cardCountOnPage);
-  
+  var cardSheet = getCardSheet();
+  initializeCardSheet(cardSheet, template);
+
+  var endOfPage = false;
   for (var i = 0; i < backlogItems.length; i++) {
-    var card = cardSheet.getRange(startRow, startColumn, numberOfTemplateRows, numberOfTemplateCols);
-    template.copyTo(card);
+    cardSheet.insertRows(startRow, numberOfTemplateRows);
     
-    for (var x = 0; x < headings.length; x++) {
-      for (var z = 0; z < templateVariableMap[headings[x]].length; z++){
-        var col = templateVariableMap[headings[x]][z][0];
-        var row = templateVariableMap[headings[x]][z][1];
-        var val = backlogItems[i][headings[x]];
-        card.getCell(col, row).setValue(val);
+    for (var currentRow = 1; currentRow <= numberOfTemplateRows; currentRow++) {
+    	if ( (i == 0) && (currentRow == 1) ){
+          cardSheet.setRowHeight(startRow, 1); //spacer = 0 this time
+    	} else if (endOfPage && currentRow == 1){
+          cardSheet.setRowHeight(startRow, remainderPageSize);
+      } else {
+        var currentHeight = getTemplateSheet().getRowHeight(currentRow);
+        cardSheet.setRowHeight(startRow + currentRow - 1, currentHeight);
       }
     }
+
+    var card = cardSheet.getRange(startRow, startColumn, numberOfTemplateRows, numberOfTemplateCols);
+    template.copyTo(card);
+    populateCard(card, headings, templateVariableMap, backlogItems[i]);
+    
     if (((i+1)%cardCountOnPage)==0) {
-      startRow += numberOfTemplateRows+1;
+      endOfPage = true;      
     } else {
-      startRow += numberOfTemplateRows;
+      endOfPage = false;      
     }
+
+    startRow += numberOfTemplateRows;
   }
   Browser.msgBox("Done!");
+}
+
+function initializeCardSheet(cardSheet, template){
+  cardSheet.clear();
+  if (cardSheet.getMaxRows() > 1)
+    cardSheet.deleteRows(1, cardSheet.getMaxRows()-1);
+  
+  setColumnWidthTo(cardSheet, template);	
+}
+
+
+function setCardRowHeightsTo(cardSheet, numberOfTemplateRows) {
+  for (var currentRow = 1; currentRow <= numberOfTemplateRows; currentRow++) {
+    var currentHeight = getTemplateSheet().getRowHeight(currentRow);
+    cardSheet.setRowHeight(currentRow, currentHeight);
+  }
+}
+
+
+function prepareCard(){
+	
+}
+
+function populateCard(card, headings, templateVariableMap, backlogItem){
+	for (var x = 0; x < headings.length; x++) {
+		for (var z = 0; z < templateVariableMap[headings[x]].length; z++){
+		  var col = templateVariableMap[headings[x]][z][0];
+		  var row = templateVariableMap[headings[x]][z][1];
+		  var val = backlogItem[headings[x]];
+		  card.getCell(col, row).setValue(val);
+		}
+	}	
 }
 
 function scanCardTemplateForHeadings(headings){
