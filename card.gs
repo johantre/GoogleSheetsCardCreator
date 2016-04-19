@@ -21,28 +21,25 @@ function getCardSheet() {
 function getJiraConfigSheet() {
   return getSpreadsheet().getSheetByName("Jira Config");
 }
+//END: Get sheets
 
+// START: Get range within sheets
 function getRangeHeight(range) {
   var sheetRowCount = range.getHeight();
   var pixelSize = 0;
   for (var i = 1; i <= sheetRowCount; i++){
   	var rowHeight = range.getSheet().getRowHeight(i);
-  	//Browser.msgBox("rowHeight = " + rowHeight);
     pixelSize += rowHeight;
   };
-  //Browser.msgBox("pixelSize = " + pixelSize);
   return pixelSize;
 }
-// END: Get sheets
 
-// START: Get range within sheets
 function getHeadersRange(backlog) {
   return backlog.getRange(1, 1, 1, backlog.getLastColumn());
 }
 
 function getItemsRange(backlog) {
   var numRows = backlog.getLastRow() - 1;
-  
   return backlog.getRange(2, 1, numRows, backlog.getLastColumn());
 }
 
@@ -60,31 +57,7 @@ function getSelectedItemsRange(backlog) {
 }
 // END: Get range within sheets
 
-// START: Set dimensions in sheet
-function setRowHeightTo(cardSheet, numberOfTemplateRows, numberOfItems, remainderPageSize, cardCountOnPage) {
-  var templateSheet = getTemplateSheet();
-
-  var currentRow = 0;
-  var endOfPrintArea = false;
-  for (var i = 0; i < numberOfItems; i++) {
-    for (var j = 1; j <= numberOfTemplateRows; j++) {
-      endOfPrintArea = false;
-      currentRow ++;     //var currentRow = (i*numberOfTemplateRows)+j;
-      var currentHeight = templateSheet.getRowHeight(j);
-      cardSheet.setRowHeight(currentRow, currentHeight);
-      if ( (((i+1)%cardCountOnPage) == 0) && (j == numberOfTemplateRows)  ){
-        endOfPrintArea = true;
-      } else {
-        endOfPrintArea = false;
-      } 
-    }
-    if (endOfPrintArea == true) {
-      currentRow++;
-      cardSheet.setRowHeight(currentRow, remainderPageSize);
-    }
-  }
-}
-
+// START: Set dimensions columns in sheet
 function setColumnWidthTo(cardSheet, templateRange) {
   var templateSheet = getTemplateSheet();
   var max = templateRange.getLastColumn() + 1;
@@ -94,7 +67,7 @@ function setColumnWidthTo(cardSheet, templateRange) {
     cardSheet.setColumnWidth(i, currentWidth);
   }
 }
-// END: Set dimentions in sheet
+// END: Set dimensions columns in sheet
 
 /* Get backlog items as objects with property name and values from the backlog. */
 function getBacklogItems(selectedOnly) {
@@ -151,20 +124,6 @@ function getHeadingsFromBacklogSheet(){
   return headings;
 }
 
-function getPreparedCardSheet(template, numberOfItems, numberOfTemplateRows, remainderCellsNeeded, remainderPageSize, cardCountOnPage) {
-  var rowsNeeded = (numberOfItems * numberOfTemplateRows) + remainderCellsNeeded;
-  var cardSheet = getCardSheet();
-  
-  initializeCardSheet(cardSheet, template);
-  
-  var rows = cardSheet.getMaxRows();
-  if (rows < rowsNeeded) {
-    cardSheet.insertRows(1, (rowsNeeded - rows));
-  }
-  setRowHeightTo(cardSheet, numberOfTemplateRows, numberOfItems, remainderPageSize, cardCountOnPage);
-  return cardSheet;
-}
-
 function createCards(backlogItems) {
   var headings = getHeadingsFromBacklogSheet();
   var templateVariableMap = scanCardTemplateForHeadings(headings);
@@ -177,26 +136,26 @@ function createCards(backlogItems) {
   var printPageHeight = getJiraConfigSheet().getRange("B6").getValue();
   var cardCountOnPage = Math.floor(printPageHeight/templateSize);
   var remainderPageSize = printPageHeight%templateSize; 
-  // Cleanup to do 
   var remainderCellsNeeded = 0;
+  var cardSheet = getCardSheet();
+  var endOfPage = false;
+
   if (remainderPageSize>0){
     remainderCellsNeeded = Math.floor(backlogItems.length/cardCountOnPage);
   } else {
     remainderCellsNeeded = 0;
   }
   
-  var cardSheet = getCardSheet();
   initializeCardSheet(cardSheet, template);
 
-  var endOfPage = false;
   for (var i = 0; i < backlogItems.length; i++) {
     cardSheet.insertRows(startRow, numberOfTemplateRows);
     
     for (var currentRow = 1; currentRow <= numberOfTemplateRows; currentRow++) {
-    	if ( (i == 0) && (currentRow == 1) ){
-          cardSheet.setRowHeight(startRow, 1); //spacer = 0 this time
-    	} else if (endOfPage && currentRow == 1){
-          cardSheet.setRowHeight(startRow, remainderPageSize);
+	  	if ( (i == 0) && (currentRow == 1) ){
+	        cardSheet.setRowHeight(startRow, 1); //spacer = 0 this time!
+	  	} else if (endOfPage && currentRow == 1){
+        cardSheet.setRowHeight(startRow, remainderPageSize);
       } else {
         var currentHeight = getTemplateSheet().getRowHeight(currentRow);
         cardSheet.setRowHeight(startRow + currentRow - 1, currentHeight);
@@ -226,17 +185,11 @@ function initializeCardSheet(cardSheet, template){
   setColumnWidthTo(cardSheet, template);	
 }
 
-
 function setCardRowHeightsTo(cardSheet, numberOfTemplateRows) {
   for (var currentRow = 1; currentRow <= numberOfTemplateRows; currentRow++) {
     var currentHeight = getTemplateSheet().getRowHeight(currentRow);
     cardSheet.setRowHeight(currentRow, currentHeight);
   }
-}
-
-
-function prepareCard(){
-	
 }
 
 function populateCard(card, headings, templateVariableMap, backlogItem){
