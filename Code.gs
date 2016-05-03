@@ -39,9 +39,7 @@ function jiraConfigure() {
 
   var ss = getJiraConfigSheet();
   var host = ss.getRange("B4").getValue(); 
-  var jql = ss.getRange("B5").getValue();
 
-  PropertiesService.getUserProperties().setProperty("jql", jql);
   PropertiesService.getUserProperties().setProperty("host", host);
   
   var userAndPassword = Browser.inputBox("Enter your Jira On Demand User id and Password in the form User:Password. e.g. Tommy.Smith:ilovejira (Note: This will be base64 Encoded and saved as a property on the spreadsheet)", "Userid:Password", Browser.Buttons.OK_CANCEL);
@@ -83,13 +81,17 @@ function getFields() {
 }  
 
 function getStories() {
-  var allData = {issues:[]};
+	var ss = getJiraConfigSheet();
+  var jql = ss.getRange("B5").getValue();
+  jql.replace("\"", "'");
+  
+	var allData = {issues:[]};
   var data = {startAt:0,maxResults:0,total:1};
   var startAt = 0;
   
   while (data.startAt + data.maxResults < data.total) {
     Logger.log("Making request for %s entries", C_MAX_RESULTS);
-    data =  JSON.parse(getDataForAPI("search?jql=" + encodeURIComponent(PropertiesService.getUserProperties().getProperty("jql")) + "&maxResults=" + C_MAX_RESULTS + "&startAt=" + startAt + "&expand=status"));  
+    data =  JSON.parse(getDataForAPI("search?jql=" + encodeURIComponent(jql) + "&maxResults=" + C_MAX_RESULTS + "&startAt=" + startAt + "&expand=status"));  
     
     allData.issues = allData.issues.concat(data.issues);
     startAt = data.startAt + data.maxResults;
