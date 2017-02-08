@@ -173,8 +173,12 @@ function getStory(data,headings,fields,rank) {
   var story = [];
   for (var i = 0;i < headings.length;i++) {
     if (headings[i] !== "") {
-      if (headings[i].toLowerCase() == "rank") // hack for the black voodoo Jira ranks
+      if (headings[i].toLowerCase() == "rank"){ // hack for the black voodoo Jira ranks
         data[headings[i].toLowerCase()] = rank;
+      } /*else if (headings[i].toLowerCase() == "sprint"){ // hack for the black voodoo Jira Sprints
+      	data[headings[i].toLowerCase()] = lastSprint(getDataForHeading(data,headings[i].toLowerCase(),fields));
+        //Browser.msgBox("after = " + lastSprint(getDataForHeading(data,headings[i].toLowerCase(),fields)));
+      }*/
       story.push(getDataForHeading(data,headings[i].toLowerCase(),fields));
     }  
   }        
@@ -287,4 +291,19 @@ function getFieldName(heading,fields) {
 function isObject(val) {
     if (val === null) { return false;}
     return ( (typeof val === 'function') || (typeof val === 'object') );
+}
+
+function lastSprint(untokenizedSprints){
+	var lastSprint = untokenizedSprints;
+  Browser.msgBox("untokenized : " + untokenizedSprints);
+	if (untokenizedSprints != null){
+		var tokenizedSprints = untokenizedSprints.split(",");
+      Browser.msgBox("tokenized : " + tokenizedSprints);
+		if (Array.isArray(tokenizedSprints)){
+          Browser.msgBox("last token (before set): " + lastSprint);
+			lastSprint = tokenizedSprints[(tokenizedSprints.lenght)-1];
+          Browser.msgBox("last token (after set): " + lastSprint);
+		}		
+	}
+	return lastSprint;
 }
